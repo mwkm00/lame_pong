@@ -2,11 +2,17 @@ let canvas = document.getElementById("gameScreen");
 let ctx = canvas.getContext("2d");
 
 const GAME_WIDTH = 800;
-const GAME_HEIGHT = 600;
+const GAME_HEIGHT = 800;
 const PADDLESPEED = 15;
-const BALLSIZE = 50;
-const BALL_LEFT_UP_CORRECTION = 20;
-const BALL_RIGHT_DOWN_CORRECTION = 30;
+const RADIUS = 10;
+const INITIAL_SPEED = 4;
+const MOUSE_DEAD_ZONE = 20;
+
+var scorePlayer = 0
+var scoreComputer = 0
+
+var hitAudio = new Audio('assets/hit.mp3');
+
 
 class Game 
 {
@@ -23,12 +29,18 @@ class Game
         new InputHandler(this.paddle);
         this.ball = new Ball(this)
 
-        this.gameObjects = [this.paddle, this.ball, this.EnemyPaddle];
+        this.gameObjects = [this.paddle, this.EnemyPaddle, this.ball];
     }
 
     update(deltaTime)
     {
         this.gameObjects.forEach((object)=> object.update(deltaTime))
+
+        if (this.paddle.paddleOnMouse())
+        {
+            this.paddle.stop();
+        }
+
         if(this.EnemyPaddle.pos.x < this.ball.pos.x)
         {
             this.EnemyPaddle.moveRight();
@@ -43,7 +55,7 @@ class Game
     {
         this.gameObjects.forEach((object)=> object.draw(ctx))
     }
-
+    
 }
 
 class Paddle 
@@ -83,7 +95,16 @@ class Paddle
 
     draw(context)
     {
+        context.fillStyle = "#000000"
         context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
+    }
+
+    paddleOnMouse()
+    {
+        if (Math.abs(game.mousePosX - Math.floor(this.pos.x+(this.width/2))) < MOUSE_DEAD_ZONE)
+        {
+            return true;
+        }
     }
 
     update(deltaTime)
@@ -108,6 +129,133 @@ class Paddle
     }
 }
 
+class Ball
+{
+    constructor(game)
+    {
+        this.radius = RADIUS
+        this.color = "#FF0000"
+        this.pos = 
+        {
+            x: game.gameWidth/2,
+            y: game.gameHeight/2
+        }
+
+        this.speed = INITIAL_SPEED
+        this.direction =
+        {
+            x: 0,
+            y: 0
+        }
+
+        this.game = game;
+    }
+    
+    draw(context)
+    {
+        context.fillStyle = this.color
+        context.beginPath()
+        context.arc(this.pos.x,this.pos.y,this.radius,0,Math.PI*2, false)
+        context.closePath()
+        context.fill()
+    }
+
+    update(deltaTime)
+    {
+        if (Math.abs(this.direction.x) == 0 || Math.abs(this.direction.x) == 0)
+        {
+            const directionVector = Math.random() * (2*Math.PI)
+            this.direction = {x: Math.cos(directionVector), y: Math.sin(directionVector)}
+        }
+        this.pos.x += this.direction.x * this.speed
+        this.pos.y += this.direction.y * this.speed
+
+        if (this.pos.y - this.radius > game.gameHeight || this.pos.y + this.radius < 0)
+        {
+            if(this.pos.y < 0)
+            {
+                console.log("PLAYER SCORES")
+                scorePlayer += 1
+                document.getElementById("scorePlayer").innerText = scorePlayer
+            }
+            else
+            {
+                console.log("COMPUTER SCORES")
+                scoreComputer += 1
+                document.getElementById("scoreComputer").innerText = scoreComputer
+            }
+            this.pos.x = game.gameWidth/2
+            this.pos.y = game.gameHeight/2
+            this.direction.x = 0
+            this.direction.y = 0
+            this.game.paddle.pos.x = game.gameWidth/2
+            this.game.EnemyPaddle.pos.x = game.gameWidth/2
+
+        }
+        if (this.pos.x + this.radius > game.gameWidth || this.pos.x - this.radius < 0)
+        {
+            this.direction.x *= (-1)
+        }
+
+        if (this.collisionBottom() || this.collisionTop())
+        {
+            let paddleHalfWidth;
+            let paddlePos;
+            if (this.collisionBottom())
+            {
+                paddleHalfWidth = this.game.paddle.width/2
+                paddlePos = this.game.paddle.pos.x
+            }
+            else
+            {
+                paddleHalfWidth = this.game.EnemyPaddle.width/2
+                paddlePos = this.game.EnemyPaddle.pos.x
+            }
+            let middlePoint = paddlePos + paddleHalfWidth
+            let collidePoint = this.pos.x - middlePoint
+            collidePoint = collidePoint / paddleHalfWidth
+            let angleRadians = (Math.PI/4) * collidePoint
+
+            if(this.collisionBottom() && Math.cos(angleRadians)>0)
+            {
+                this.direction.y = (-1)*Math.cos(angleRadians)    
+            }
+            else
+            {
+                this.direction.y = Math.cos(angleRadians)
+            }
+            hitAudio.play();
+            this.direction.x = Math.sin(angleRadians)  
+        }
+    }
+
+    collisionBottom()
+    {
+        let PaddleLeft = this.game.paddle.pos.x
+        let PaddleRight = this.game.paddle.pos.x + this.game.paddle.width
+        let PaddleTop = this.game.paddle.pos.y
+
+        let BallBottom = this.pos.y + this.radius
+        let BallLeft = this.pos.x - this.radius
+        let BallRight = this.pos.x + this.radius
+
+        return ((BallBottom >= PaddleTop) && (BallRight >= PaddleLeft) && (BallLeft <= PaddleRight))
+    }
+
+    collisionTop()
+    {
+        let PaddleLeft = this.game.EnemyPaddle.pos.x
+        let PaddleRight = this.game.EnemyPaddle.pos.x + this.game.EnemyPaddle.width
+        let PaddleTop = this.game.EnemyPaddle.pos.y + this.game.EnemyPaddle.height
+
+        let BallTop = this.pos.y - this.radius
+        let BallLeft = this.pos.x - this.radius
+        let BallRight = this.pos.x + this.radius
+        return ((BallTop <= PaddleTop) && (BallRight >= PaddleLeft) && (BallLeft <= PaddleRight))
+    }
+
+}
+
 class EnemyP extends Paddle
 {
     constructor(game)
@@ -125,111 +273,29 @@ class InputHandler
 {
     constructor(paddle)
     {
-        document.addEventListener('keydown', (event)=> 
+        document.addEventListener('mousemove', (event)=> 
         {
-            switch (event.key)
+            game.mousePosX = event.x
+            let moveDirection = event.x -(paddle.pos.x+(paddle.width/2))
+            if(event.x != Math.floor(paddle.pos.x))
             {
-                case "ArrowRight":
+                if (moveDirection > 0 && event.x > paddle.pos.x)
+                {
                     paddle.moveRight()
-                    break;
-                case "ArrowLeft":
+                }
+                if (moveDirection < 0 && event.x < paddle.pos.x)
+                {
                     paddle.moveLeft()
-                    break;
+                }
             }
         })
 
-        document.addEventListener('keyup', (event)=> 
-        {
-            switch (event.key)
-            {
-                case "ArrowRight":
-                    if(paddle.speed>0)
-                    {
-                        paddle.stop();
-                    }
-                    break;
-                case "ArrowLeft":
-                    if(paddle.speed<0)
-                    {
-                        paddle.stop();
-                    }
-                    break;
-            }
-        })
     }
 
-}
-
-class Ball
-{
-    constructor(game)
-    {
-        this.gameWidth = game.gameWidth
-        this.gameHeight = game.gameHeight
-        
-        this.game = game;
-
-        this.image = document.getElementById("ball");
-        this.pos = {
-            x: 15,
-            y: 15
-        }
-        this.speed = {
-            x: 2,
-            y: 2
-        }
-        this.size = BALLSIZE;
-        this.r_up_correction = BALL_RIGHT_DOWN_CORRECTION
-        this.l_down_correction = BALL_LEFT_UP_CORRECTION
-    }
-
-    draw(context)
-    {
-        context.drawImage(this.image, this.pos.x, this.pos.y, this.size,this.size)
-    }
-
-    update(deltaTime)
-    {
-        this.pos.x += this.speed.x;
-        this.pos.y += this.speed.y;
-
-        if(this.pos.x+this.r_up_correction > this.gameWidth || this.pos.x+this.l_down_correction < 0)
-        {
-            this.speed.x = -this.speed.x;
-        }
-
-        if(this.pos.y+this.r_up_correction > this.gameHeight || this.pos.y+this.l_down_correction < 0)
-        {
-            this.speed.y = -this.speed.y;
-        }
-
-        let bottomOfBall = this.pos.y + this.r_up_correction;
-        let topOfBall = this.pos.y
-
-        let topOfPaddle = this.game.paddle.pos.y;
-        let bottomOfEnemyPaddle = this.game.EnemyPaddle.pos.y
-
-        let leftEndPaddle = this.game.paddle.pos.x;
-        let rightEndPaddle = this.game.paddle.pos.x + this.game.paddle.width
-
-        let leftEndEnemyPaddle = this.game.EnemyPaddle.pos.x
-        let rightEndEnemyPaddle = this.game.EnemyPaddle.pos.x + this.game.EnemyPaddle.width
-
-        if(bottomOfBall >= topOfPaddle && this.pos.x+this.r_up_correction >= leftEndPaddle && this.pos.x+this.l_down_correction <= rightEndPaddle)
-        {
-            this.speed.y = -this.speed.y
-            this.pos.y = this.game.paddle.pos.y - this.r_up_correction;
-        }
-
-        if(topOfBall <= bottomOfEnemyPaddle && this.pos.x+this.l_down_correction >= leftEndEnemyPaddle && this.pos.x+this.r_up_correction <= rightEndEnemyPaddle)
-        {
-            this.speed.y = -this.speed.y
-            this.pos.y = this.game.EnemyPaddle.pos.y+5;
-        }
-    }
 }
 
 let game = new Game(GAME_WIDTH, GAME_HEIGHT)
+
 game.start();
 
 let lastTime = 0;

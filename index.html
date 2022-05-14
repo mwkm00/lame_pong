@@ -5,21 +5,26 @@
         <meta charset="UTF-8" />
 
         <style>
-            #gameScreen {
+            #gameScreen 
+            {
                 border: 1px solid black;
+                cursor: none;
             }
             #ball
             {
                 display: none;
             }
-
+            #scoreComputer, #scorePlayer
+            {
+                font-size: 30px;
+            }
         </style>
     </head>
 
     <body>
-        <img id="ball" src="assets/ball.png">
-
-        <canvas id="gameScreen" width="800" height="600"></canvas>
+        <div id="scoreComputer">0</div>
+        <canvas id="gameScreen" width="800" height="800"></canvas>
+        <div id="scorePlayer">0</div>
         <script src="index.js"></script>
     </body>
 </html>
