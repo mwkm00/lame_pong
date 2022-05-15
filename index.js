@@ -3,10 +3,10 @@ let ctx = canvas.getContext("2d");
 
 const GAME_WIDTH = 800
 const GAME_HEIGHT = 800
-const PADDLESPEED = 20
+const PADDLESPEED = 450
 const RADIUS = 10
-const INITIAL_SPEED = 15
-const HIT_SPEED = 35
+const INITIAL_SPEED = 350
+const HIT_SPEED = 700
 const MOUSE_DEAD_ZONE = 20
 const RENDER_COLOR = "#ffffffff"
 const LINE_WIDTH = 10
@@ -260,7 +260,7 @@ class Paddle
     update(deltaTime)
     {
         if(!deltaTime) return;
-        this.pos.x += this.speed / deltaTime;
+        this.pos.x += this.speed * deltaTime; //
 
         if(this.pos.x < 0 || this.pos.x > this.gameWidth-this.width)
         {
@@ -326,8 +326,8 @@ class Ball
             const directionVector = Math.random() * (2*Math.PI)
             this.direction = {x: Math.cos(directionVector), y: Math.sin(directionVector)}
         }
-        this.pos.x += (this.direction.x * this.speed) / deltaTime
-        this.pos.y += (this.direction.y * this.speed) / deltaTime
+        this.pos.x += (this.direction.x * this.speed) * deltaTime//
+        this.pos.y += (this.direction.y * this.speed) * deltaTime
 
         if (this.pos.y - this.radius > game.gameHeight || this.pos.y + this.radius < 0)
         {
@@ -477,11 +477,12 @@ class InputHandler
 let menu = new Menu()
 menu.draw(ctx)
 
-let lastTime = 0;
+let lastTime = 0
+let deltaTime = 0
 function gameLoop(timeStamp) 
 {
-    let deltaTime = timeStamp - lastTime
-    
+    deltaTime = (timeStamp - lastTime) / 1000
+    lastTime = timeStamp;
     console.log(deltaTime)
 
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
@@ -492,9 +493,9 @@ function gameLoop(timeStamp)
     }
     game.draw(ctx)
 
-    lastTime = timeStamp;
+    
 
-    requestAnimationFrame(gameLoop)
+    window.requestAnimationFrame(gameLoop)
 }
 
 let game = new Game(GAME_WIDTH, GAME_HEIGHT)
