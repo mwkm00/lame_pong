@@ -3,18 +3,19 @@ let ctx = canvas.getContext("2d");
 
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 800;
-const PADDLESPEED = 15;
+const PADDLESPEED = 20;
 const RADIUS = 10;
-const INITIAL_SPEED = 4;
+const INITIAL_SPEED = 15;
+const HIT_SPEED = 35;
 const MOUSE_DEAD_ZONE = 20;
 
 var scorePlayer = 0
 var scoreComputer = 0
 
-var hitAudio = new Audio('assets/hit.mp3');
+const hitAudio = new Audio('assets/hit.mp3');
 
 
-class Game 
+class Game
 {
     constructor(gameWidth, gameHeight)
     {
@@ -30,6 +31,16 @@ class Game
         this.ball = new Ball(this)
 
         this.gameObjects = [this.paddle, this.EnemyPaddle, this.ball];
+    }
+
+    restart()
+    {
+        this.ball.pos.x = game.gameWidth/2
+        this.ball.pos.y = game.gameHeight/2
+        this.ball.direction.x = 0
+        this.ball.direction.y = 0
+        this.paddle.pos.x = game.gameWidth/2
+        this.EnemyPaddle.pos.x = game.gameWidth/2
     }
 
     update(deltaTime)
@@ -48,6 +59,18 @@ class Game
         else
         {
             this.EnemyPaddle.moveLeft();
+        }
+
+        if(this.ball.pos.x < 0|| this.ball.pos.x > this.gameWidth)
+        {
+            if (this.ball.pos.x < 0)
+            {
+                this.ball.pos.x = 50
+            }
+            else
+            {
+                this.ball.pos.x = this.gameWidth - 50
+            }
         }
     }
 
@@ -162,13 +185,14 @@ class Ball
 
     update(deltaTime)
     {
-        if (Math.abs(this.direction.x) == 0 || Math.abs(this.direction.x) == 0)
+        if (!deltaTime) return
+        if (Math.abs(this.direction.x) >= 0.9 || Math.abs(this.direction.x) <= 0.1)
         {
             const directionVector = Math.random() * (2*Math.PI)
             this.direction = {x: Math.cos(directionVector), y: Math.sin(directionVector)}
         }
-        this.pos.x += this.direction.x * this.speed
-        this.pos.y += this.direction.y * this.speed
+        this.pos.x += (this.direction.x * this.speed) / deltaTime
+        this.pos.y += (this.direction.y * this.speed) / deltaTime
 
         if (this.pos.y - this.radius > game.gameHeight || this.pos.y + this.radius < 0)
         {
@@ -184,12 +208,8 @@ class Ball
                 scoreComputer += 1
                 document.getElementById("scoreComputer").innerText = scoreComputer
             }
-            this.pos.x = game.gameWidth/2
-            this.pos.y = game.gameHeight/2
-            this.direction.x = 0
-            this.direction.y = 0
-            this.game.paddle.pos.x = game.gameWidth/2
-            this.game.EnemyPaddle.pos.x = game.gameWidth/2
+            this.speed = INITIAL_SPEED
+            game.restart()
 
         }
         if (this.pos.x + this.radius > game.gameWidth || this.pos.x - this.radius < 0)
@@ -199,6 +219,7 @@ class Ball
 
         if (this.collisionBottom() || this.collisionTop())
         {
+            this.speed = HIT_SPEED
             let paddleHalfWidth;
             let paddlePos;
             if (this.collisionBottom())
