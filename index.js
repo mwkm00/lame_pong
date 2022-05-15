@@ -3,7 +3,7 @@ let ctx = canvas.getContext("2d");
 
 const GAME_WIDTH = 800
 const GAME_HEIGHT = 800
-const PADDLESPEED = 450
+const PADDLESPEED = 485
 const RADIUS = 10
 const INITIAL_SPEED = 350
 const HIT_SPEED = 700
@@ -18,6 +18,8 @@ var gameEnded = false
 var gameVictor = "PLAYER 1"
 var EnemyAI = true
 var paused = false
+var hardMode = false
+var ballHit = false
 
 const BALL_STYLE = "normal" // "normal", "retro"
 
@@ -127,7 +129,6 @@ class Game
     update(deltaTime)
     {
         this.gameObjects.forEach((object)=> object.update(deltaTime))
-
         if (EnemyAI)
         {
             if(this.EnemyPaddle.pos.x < this.ball.pos.x)
@@ -162,6 +163,7 @@ class Game
             this.gameObjects.pop()
             scorePlayer = ""
             scorePlayer2 = ""
+            ballHit = false
             gameEnded = true
         }
 
@@ -208,6 +210,11 @@ class Score
         context.font = this.font
         context.fillText(this.player2Score,0,((game.gameHeight/2)-1.5*LINE_WIDTH))
         context.fillText(this.playerScore,0,((game.gameHeight/2)+7*LINE_WIDTH))
+        if (hardMode && !gameEnded)
+        {   
+            context.font = "23px Chava"
+            context.fillText("H",game.gameWidth-3*LINE_WIDTH,((game.gameHeight/2)-1.5*LINE_WIDTH))
+        }
     }
     update(deltaTime)
     {
@@ -321,12 +328,12 @@ class Ball
     update(deltaTime)
     {
         if (!deltaTime) return
-        if (Math.abs(this.direction.x) >= 0.9 || Math.abs(this.direction.x) <= 0.1)
+        if ((Math.abs(this.direction.x) >= 0.9 || Math.abs(this.direction.x) <= 0.1) && !ballHit)
         {
             const directionVector = Math.random() * (2*Math.PI)
             this.direction = {x: Math.cos(directionVector), y: Math.sin(directionVector)}
         }
-        this.pos.x += (this.direction.x * this.speed) * deltaTime//
+        this.pos.x += (this.direction.x * this.speed) * deltaTime
         this.pos.y += (this.direction.y * this.speed) * deltaTime
 
         if (this.pos.y - this.radius > game.gameHeight || this.pos.y + this.radius < 0)
@@ -338,11 +345,13 @@ class Ball
                 {
                     console.log("PLAYER SCORES")
                     scorePlayer += 1
+                    ballHit = false
                 }
                 else
                 {
                     console.log("COMPUTER SCORES")
                     scorePlayer2 += 1
+                    ballHit = false
                 }
                 this.speed = INITIAL_SPEED
                 game.restart()
@@ -362,16 +371,22 @@ class Ball
 
         if ((this.collisionBottom() || this.collisionTop()) && !gameEnded)
         {
+            ballHit = true
             this.speed = HIT_SPEED
             let paddleHalfWidth;
             let paddlePos;
             if (this.collisionBottom())
             {
+                this.speed = HIT_SPEED
                 paddleHalfWidth = this.game.paddle.width/2
                 paddlePos = this.game.paddle.pos.x
             }
             else
             {
+                if (EnemyAI && hardMode)
+                {
+                    this.speed *= 1.5
+                }
                 paddleHalfWidth = this.game.EnemyPaddle.width/2
                 paddlePos = this.game.EnemyPaddle.pos.x
             }
@@ -492,8 +507,6 @@ function gameLoop(timeStamp)
     }
     game.draw(ctx)
 
-    
-
     window.requestAnimationFrame(gameLoop)
 }
 
@@ -505,6 +518,7 @@ document.addEventListener('keydown', (event)=>
     switch (event.key)
     {
         case " ":
+            ballHit = false
             scorePlayer = 0
             scorePlayer2 = 0
             gameEnded = false
@@ -530,6 +544,13 @@ document.addEventListener('keydown', (event)=>
             if (!gameEnded)
             {
                 paused = !paused
+            }
+            break
+        case "h":
+            keyPressed.play()
+            if (EnemyAI)
+            {
+                hardMode = !hardMode
             }
             break
     }
