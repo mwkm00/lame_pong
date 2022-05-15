@@ -3,10 +3,15 @@
     <head>
         <title>game</title>
         <meta charset="UTF-8" />
-
         <style>
             #gameScreen 
             {
+                padding-left: 0;
+                padding-right: 0;
+                margin-left: auto;
+                margin-right: auto;
+                display: block;
+                background-color: rgb(35, 35, 35);
                 border: 1px solid black;
                 cursor: none;
             }
@@ -14,17 +19,26 @@
             {
                 display: none;
             }
-            #scoreComputer, #scorePlayer
+            a
             {
-                font-size: 30px;
+                padding-left: 0;
+                padding-right: 0;
+                margin-left: auto;
+                margin-right: auto;
+                padding-bottom: 6px;
+                display: block;
+                font-family: "Chava"
             }
         </style>
     </head>
 
     <body>
-        <div id="scoreComputer">0</div>
+        <a>I: AI on/off</a>
+        <a>Space: start/restart</a>
+        <a>M: Volume on/off</a>
+        <a>P: Pause on/off</a>
+        <link href="http://fonts.cdnfonts.com/css/chava" rel="stylesheet">
         <canvas id="gameScreen" width="800" height="800"></canvas>
-        <div id="scorePlayer">0</div>
         <script src="index.js"></script>
     </body>
 </html>

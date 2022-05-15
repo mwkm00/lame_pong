@@ -1,36 +1,117 @@
 let canvas = document.getElementById("gameScreen");
 let ctx = canvas.getContext("2d");
 
-const GAME_WIDTH = 800;
-const GAME_HEIGHT = 800;
-const PADDLESPEED = 20;
-const RADIUS = 10;
-const INITIAL_SPEED = 15;
-const HIT_SPEED = 35;
-const MOUSE_DEAD_ZONE = 20;
+const GAME_WIDTH = 800
+const GAME_HEIGHT = 800
+const PADDLESPEED = 20
+const RADIUS = 10
+const INITIAL_SPEED = 15
+const HIT_SPEED = 35
+const MOUSE_DEAD_ZONE = 20
+const RENDER_COLOR = "#ffffffff"
+const LINE_WIDTH = 10
+const PADDLE_HEIGHT = 20
+const PADDLE_WIDTH = 150
+const SCORE_TO_WIN = 10
+
+var gameEnded = false
+var gameVictor = "PLAYER 1"
+var EnemyAI = true
+var paused = false
+
+const BALL_STYLE = "normal" // "normal", "retro"
 
 var scorePlayer = 0
-var scoreComputer = 0
+var scorePlayer2 = 0
 
-const hitAudio = new Audio('assets/hit.mp3');
+const hitAudio = new Audio('assets/hit.mp3')
+const bounceAudio = new Audio('assets/bounce.mp3')
+const scoredAudio = new Audio('assets/scored.mp3')
+const startAudio = new Audio('assets/start.mp3')
+const keyPressed = new Audio('assets/muted.mp3')
+keyPressed.volume = 0.5
 
+class Menu
+{
+    constructor()
+    {
+        this.pongPos = GAME_HEIGHT/2-100
+        this.playButtonPos = GAME_HEIGHT/2+100
+    }
+    draw(context)
+    {
+        context.fillStyle = RENDER_COLOR
+        context.font = "80px Chava"
+        context.fillText("PONG",GAME_WIDTH/2.9,this.pongPos)
+        context.font = "40px Chava"
+        context.fillText("PLAY",GAME_WIDTH/2.4,this.playButtonPos)
+    }
+}
+
+class VictoryScreen
+{
+    constructor(game)
+    {
+        this.font = "80px Chava"
+        this.screenPosY = game.gameHeight/2
+        this.screenPosX = game.gameWidth/4.4
+    }
+    draw(context)
+    {
+        if(gameEnded)
+        {
+            context.font = this.font
+            context.fillText(gameVictor,this.screenPosX,this.screenPosY-2*LINE_WIDTH)
+            context.fillText("WINS",this.screenPosX,1.2*this.screenPosY)
+        }
+    }
+    update(deltaTime)
+    {
+    }
+}
+
+class PauseScreen
+{
+    constructor(game)
+    {
+        this.font = "80px Chava"
+        this.screenPosY = game.gameHeight/2
+        this.screenPosX = game.gameWidth/3.5
+    }
+    draw(context)
+    {
+        if(paused)
+        {
+            context.font = this.font
+            context.fillText("PAUSED",this.screenPosX,this.screenPosY-2*LINE_WIDTH)
+        }
+    }
+    update(deltaTime)
+    {
+    }
+}
 
 class Game
 {
     constructor(gameWidth, gameHeight)
     {
-        this.gameWidth = gameWidth;
-        this.gameHeight = gameHeight;
+        this.gameWidth = gameWidth
+        this.gameHeight = gameHeight
     }
 
     start()
     {
         this.paddle = new Paddle(this)
         this.EnemyPaddle = new EnemyP(this)
-        new InputHandler(this.paddle);
+        new InputHandler(this.paddle, "ArrowLeft", "ArrowRight")
+        new InputHandler(this.EnemyPaddle, "a", "d")
         this.ball = new Ball(this)
+        this.middleLine = new middleLine(this)
+        this.scoreDisplay = new Score(this)
+        this.endScreen = new VictoryScreen(this)
+        this.pauseScreen = new PauseScreen(this)
 
-        this.gameObjects = [this.paddle, this.EnemyPaddle, this.ball];
+        this.gameObjects = [this.ball, this.middleLine, this.scoreDisplay,this.pauseScreen,this.endScreen, this.paddle, this.EnemyPaddle]
     }
 
     restart()
@@ -47,18 +128,16 @@ class Game
     {
         this.gameObjects.forEach((object)=> object.update(deltaTime))
 
-        if (this.paddle.paddleOnMouse())
+        if (EnemyAI)
         {
-            this.paddle.stop();
-        }
-
-        if(this.EnemyPaddle.pos.x < this.ball.pos.x)
-        {
-            this.EnemyPaddle.moveRight();
-        }
-        else
-        {
-            this.EnemyPaddle.moveLeft();
+            if(this.EnemyPaddle.pos.x < this.ball.pos.x)
+            {
+                this.EnemyPaddle.moveRight();
+            }
+            else
+            {
+                this.EnemyPaddle.moveLeft();
+            }
         }
 
         if(this.ball.pos.x < 0|| this.ball.pos.x > this.gameWidth)
@@ -72,6 +151,20 @@ class Game
                 this.ball.pos.x = this.gameWidth - 50
             }
         }
+
+        if(scorePlayer == SCORE_TO_WIN || scorePlayer2 == SCORE_TO_WIN)
+        {
+            if (scorePlayer2 == SCORE_TO_WIN)
+            {
+                gameVictor = "PLAYER 2"
+            }
+            this.gameObjects.pop()
+            this.gameObjects.pop()
+            scorePlayer = ""
+            scorePlayer2 = ""
+            gameEnded = true
+        }
+
     }
 
     draw(ctx)
@@ -81,6 +174,48 @@ class Game
     
 }
 
+class middleLine
+{
+    constructor(game)
+    {
+        this.pos = game.gameHeight/2
+    }
+    draw(context)
+    {
+        context.strokeStyle = RENDER_COLOR;
+        context.lineWidth = LINE_WIDTH;
+        context.setLineDash([15, 15]);
+        context.beginPath()
+        context.moveTo(0, this.pos)
+        context.lineTo(game.gameWidth, this.pos)
+        context.stroke();
+    }
+    update(deltaTime)
+    {
+    }
+}
+
+class Score
+{
+    constructor(game)
+    {
+        this.font = "80px Chava"
+        this.player2Score = scorePlayer2
+        this.playerScore = scorePlayer
+    }
+    draw(context)
+    {
+        context.font = this.font
+        context.fillText(this.player2Score,0,((game.gameHeight/2)-1.5*LINE_WIDTH))
+        context.fillText(this.playerScore,0,((game.gameHeight/2)+7*LINE_WIDTH))
+    }
+    update(deltaTime)
+    {
+        this.player2Score = scorePlayer2
+        this.playerScore = scorePlayer
+    }
+}
+
 class Paddle 
 {
     constructor(game)
@@ -88,8 +223,8 @@ class Paddle
         this.gameWidth = game.gameWidth
         this.gameHeight = game.gameHeight
 
-        this.width = 150;
-        this.height = 30;
+        this.width = PADDLE_WIDTH;
+        this.height = PADDLE_HEIGHT;
 
         this.maxSpeed = PADDLESPEED;
 
@@ -118,16 +253,8 @@ class Paddle
 
     draw(context)
     {
-        context.fillStyle = "#000000"
+        context.fillStyle = RENDER_COLOR
         context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
-    }
-
-    paddleOnMouse()
-    {
-        if (Math.abs(game.mousePosX - Math.floor(this.pos.x+(this.width/2))) < MOUSE_DEAD_ZONE)
-        {
-            return true;
-        }
     }
 
     update(deltaTime)
@@ -157,7 +284,7 @@ class Ball
     constructor(game)
     {
         this.radius = RADIUS
-        this.color = "#FF0000"
+        this.color = RENDER_COLOR
         this.pos = 
         {
             x: game.gameWidth/2,
@@ -176,11 +303,19 @@ class Ball
     
     draw(context)
     {
-        context.fillStyle = this.color
-        context.beginPath()
-        context.arc(this.pos.x,this.pos.y,this.radius,0,Math.PI*2, false)
-        context.closePath()
-        context.fill()
+        if (BALL_STYLE == "retro")
+        {
+            context.fillStyle = RENDER_COLOR
+            context.fillRect(this.pos.x, this.pos.y, this.radius, this.radius)
+        }
+        else
+        {
+            context.fillStyle = this.color
+            context.beginPath()
+            context.arc(this.pos.x,this.pos.y,this.radius,0,Math.PI*2, false)
+            context.closePath()
+            context.fill()
+        }
     }
 
     update(deltaTime)
@@ -196,28 +331,36 @@ class Ball
 
         if (this.pos.y - this.radius > game.gameHeight || this.pos.y + this.radius < 0)
         {
-            if(this.pos.y < 0)
+            if (!gameEnded)
             {
-                console.log("PLAYER SCORES")
-                scorePlayer += 1
-                document.getElementById("scorePlayer").innerText = scorePlayer
+                scoredAudio.play()
+                if(this.pos.y < 0)
+                {
+                    console.log("PLAYER SCORES")
+                    scorePlayer += 1
+                }
+                else
+                {
+                    console.log("COMPUTER SCORES")
+                    scorePlayer2 += 1
+                }
+                this.speed = INITIAL_SPEED
+                game.restart()
             }
             else
             {
-                console.log("COMPUTER SCORES")
-                scoreComputer += 1
-                document.getElementById("scoreComputer").innerText = scoreComputer
+                bounceAudio.play()
+                this.direction.y *= (-1)
             }
-            this.speed = INITIAL_SPEED
-            game.restart()
 
         }
         if (this.pos.x + this.radius > game.gameWidth || this.pos.x - this.radius < 0)
         {
+            bounceAudio.play()
             this.direction.x *= (-1)
         }
 
-        if (this.collisionBottom() || this.collisionTop())
+        if ((this.collisionBottom() || this.collisionTop()) && !gameEnded)
         {
             this.speed = HIT_SPEED
             let paddleHalfWidth;
@@ -245,7 +388,7 @@ class Ball
             {
                 this.direction.y = Math.cos(angleRadians)
             }
-            hitAudio.play();
+            hitAudio.play()
             this.direction.x = Math.sin(angleRadians)  
         }
     }
@@ -292,22 +435,37 @@ class EnemyP extends Paddle
 
 class InputHandler
 {
-    constructor(paddle)
+    constructor(paddle, left, right)
     {
-        document.addEventListener('mousemove', (event)=> 
+        document.addEventListener('keydown', (event)=> 
         {
-            game.mousePosX = event.x
-            let moveDirection = event.x -(paddle.pos.x+(paddle.width/2))
-            if(event.x != Math.floor(paddle.pos.x))
+            switch (event.key)
             {
-                if (moveDirection > 0 && event.x > paddle.pos.x)
-                {
+                case right:
                     paddle.moveRight()
-                }
-                if (moveDirection < 0 && event.x < paddle.pos.x)
-                {
+                    break;
+                case left:
                     paddle.moveLeft()
-                }
+                    break;
+            }
+        })
+
+        document.addEventListener('keyup', (event)=> 
+        {
+            switch (event.key)
+            {
+                case right:
+                    if(paddle.speed>0)
+                    {
+                        paddle.stop();
+                    }
+                    break;
+                case left:
+                    if(paddle.speed<0)
+                    {
+                        paddle.stop();
+                    }
+                    break;
             }
         })
 
@@ -315,21 +473,62 @@ class InputHandler
 
 }
 
-let game = new Game(GAME_WIDTH, GAME_HEIGHT)
 
-game.start();
+let menu = new Menu()
+menu.draw(ctx)
 
 let lastTime = 0;
-function gameLoop(timeStamp) {
-    let deltaTime = timeStamp - lastTime;
-    lastTime = timeStamp;
+function gameLoop(timeStamp) 
+{
+    let deltaTime = timeStamp - lastTime
+    
+    console.log(deltaTime)
 
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
 
-    game.update(deltaTime);
+    if (!paused)
+    {
+        game.update(deltaTime)
+    }
     game.draw(ctx)
 
-    requestAnimationFrame(gameLoop);
+    lastTime = timeStamp;
+
+    requestAnimationFrame(gameLoop)
 }
 
-gameLoop()
+let game = new Game(GAME_WIDTH, GAME_HEIGHT)
+let endScreen = new VictoryScreen(game)
+
+document.addEventListener('keydown', (event)=>  
+{
+    switch (event.key)
+    {
+        case " ":
+            scorePlayer = 0
+            scorePlayer2 = 0
+            gameEnded = false
+            game = new Game(GAME_WIDTH, GAME_HEIGHT)
+            startAudio.play()
+            game.start()
+            gameLoop()
+            break
+        case "i":
+            keyPressed.play()
+            EnemyAI = !EnemyAI
+            game.EnemyPaddle.stop()
+            break
+        case "m":
+            keyPressed.play()
+            hitAudio.muted = !hitAudio.muted
+            bounceAudio.muted = !bounceAudio.muted
+            scoredAudio.muted = !scoredAudio.muted
+            startAudio.muted = !startAudio.muted
+        case "p":
+            keyPressed.play()
+            if (!gameEnded)
+            {
+                paused = !paused
+            }
+    }
+})
