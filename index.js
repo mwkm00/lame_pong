@@ -524,11 +524,13 @@ document.addEventListener('keydown', (event)=>
             bounceAudio.muted = !bounceAudio.muted
             scoredAudio.muted = !scoredAudio.muted
             startAudio.muted = !startAudio.muted
+            break
         case "p":
             keyPressed.play()
             if (!gameEnded)
             {
                 paused = !paused
             }
+            break
     }
 })
