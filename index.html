@@ -4,6 +4,13 @@
         <title>game</title>
         <meta charset="UTF-8" />
         <style>
+            @font-face 
+            {
+                font-family: 'Chava';
+                font-style: normal;
+                font-weight: 400;
+                src: local('Chava'), url('https://fonts.cdnfonts.com/s/63083/ChavaRegular.woff') format('woff');
+            }
             #gameScreen 
             {
                 padding-left: 0;
@@ -37,7 +44,6 @@
         <a>Space: start/restart</a>
         <a>M: Volume on/off</a>
         <a>P: Pause on/off</a>
-        <link href="http://fonts.cdnfonts.com/css/chava" rel="stylesheet">
         <canvas id="gameScreen" width="800" height="800"></canvas>
         <script src="index.js"></script>
     </body>

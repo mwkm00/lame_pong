@@ -483,7 +483,6 @@ function gameLoop(timeStamp)
 {
     deltaTime = (timeStamp - lastTime) / 1000
     lastTime = timeStamp;
-    console.log(deltaTime)
 
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
 
