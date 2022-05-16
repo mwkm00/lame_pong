@@ -15,7 +15,7 @@ const PADDLE_WIDTH = 150
 const SCORE_TO_WIN = 10
 
 var gameEnded = false
-var gameVictor = "PLAYER 1"
+var gameVictor = ""
 var EnemyAI = true
 var paused = false
 var hardMode = false
@@ -158,6 +158,10 @@ class Game
             if (scorePlayer2 == SCORE_TO_WIN)
             {
                 gameVictor = "PLAYER 2"
+            }
+            else
+            {
+                gameVictor = "PLAYER 1"
             }
             this.gameObjects.pop()
             this.gameObjects.pop()
